@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = await import('@prisma/client');
 
 const prisma = new PrismaClient();
 
