@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken';
 import authRepository from '../repositories/authRepository.js';
 
 const register = async ({ username, email, password }) => {
+    const existingUser = await authRepository.findUserByEmailOrUsername(email, username);
+    if (existingUser) {
+        throw new Error('User already exists');
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     return await authRepository.createUser({ username, email, password: hashedPassword });
 };
