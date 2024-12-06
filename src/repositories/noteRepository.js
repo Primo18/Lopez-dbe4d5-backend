@@ -34,8 +34,16 @@ const deleteNote = async (id) => {
     if (!existingNote) {
         throw new Error('Record not found');
     }
+
+    // Delete the NoteCategory relationships first
+    await prisma.noteCategory.deleteMany({
+        where: { noteId: Number(id) },
+    });
+
+    // Delete the note
     await prisma.note.delete({ where: { id: Number(id) } });
 };
+
 
 const findByUserIdAndArchived = async (userId, archived) => {
     return await prisma.note.findMany({
@@ -67,7 +75,7 @@ const addCategoriesToNote = async (noteId, userId, categoryIds) => {
         throw new Error('One or more categories do not belong to the user');
     }
 
-    // Conect
+    // Conecct the note with the categories
     const noteCategories = await prisma.noteCategory.createMany({
         data: categoryIds.map(categoryId => ({
             noteId: noteId,
