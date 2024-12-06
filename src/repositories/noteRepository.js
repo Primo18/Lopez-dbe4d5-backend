@@ -44,6 +44,10 @@ const deleteNote = async (id) => {
     await prisma.note.delete({ where: { id: Number(id) } });
 };
 
+const findNoteById = async (id) => {
+    return await prisma.note.findUnique({ where: { id: Number(id) } });
+};
+
 
 const findByUserIdAndArchived = async (userId, archived) => {
     return await prisma.note.findMany({
@@ -146,4 +150,4 @@ const getNotesByCategory = async (userId, categoryName) => {
     });
 };
 
-export default { create, update, deleteNote, findByUserIdAndArchived, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory };
+export default { create, update, deleteNote, findByUserIdAndArchived, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, findNoteById };

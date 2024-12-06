@@ -21,13 +21,31 @@ const updateNote = async (req, res) => {
     const { id } = req.params;
     const { title, content, archived } = req.body;
 
-    if (!title || !content) {
-        return res.status(400).json({ error: 'Missing required fields' });
+    const userId = req.userId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-        const note = await noteService.updateNote(id, { title, content, archived });
-        return res.status(200).json(note);
+        const note = await noteService.getNoteById(id);
+
+        if (!note) {
+            return res.status(404).json({ error: 'Note not found' });
+        }
+
+        if (note.userId !== userId) {
+            return res.status(403).json({ error: 'You do not have permission to edit this note' });
+        }
+
+        const updatedFields = {};
+        if (title !== undefined) updatedFields.title = title;
+        if (content !== undefined) updatedFields.content = content;
+        if (archived !== undefined) updatedFields.archived = archived;
+
+        const updatedNote = await noteService.updateNote(id, updatedFields);
+
+        return res.status(200).json(updatedNote);
     } catch (error) {
         if (error.message === 'Record not found') {
             return res.status(404).json({ error: 'Note not found' });
@@ -36,6 +54,7 @@ const updateNote = async (req, res) => {
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
+
 
 
 const deleteNote = async (req, res) => {

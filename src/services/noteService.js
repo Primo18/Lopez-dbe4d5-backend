@@ -16,6 +16,10 @@ const getNotes = async (userId, archived) => {
     return await noteRepository.findByUserIdAndArchived(userId, archived);
 };
 
+const getNoteById = async (id) => {
+    return await noteRepository.findNoteById(id);
+};
+
 const addCategoriesToNote = async (noteId, userId, categoryIds) => {
     try {
         console.log('Service: Adding categories to note:', { noteId, userId, categoryIds });
@@ -42,4 +46,4 @@ const getNotesByCategory = async (userId, categoryName) => {
     return await noteRepository.getNotesByCategory(userId, categoryName);
 };
 
-export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory };
+export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, getNoteById };
