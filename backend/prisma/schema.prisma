@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//  Define the models
+
+model User {
+  id         Int        @id @default(autoincrement())
+  username   String     @unique
+  email      String     @unique
+  password   String
+  notes      Note[]
+  categories Category[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Note {
+  id         Int            @id @default(autoincrement())
+  title      String
+  content    String
+  archived   Boolean        @default(false)
+  userId     Int // Relationship with User
+  user       User           @relation(fields: [userId], references: [id])
+  categories NoteCategory[] // Relationship many-to-many with Category
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model Category {
+  id     Int            @id @default(autoincrement())
+  name   String
+  userId Int
+  user   User           @relation(fields: [userId], references: [id])
+  notes  NoteCategory[]
+
+  @@unique([name, userId])
+}
+
+// Relationship many-to-many between Note and Category
+model NoteCategory {
+  noteId     Int
+  categoryId Int
+  note       Note     @relation(fields: [noteId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@id([noteId, categoryId])
+}
