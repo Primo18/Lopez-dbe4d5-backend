@@ -100,9 +100,7 @@ const removeCategoryFromNote = async (noteId, categoryId) => {
     await prisma.noteCategory.delete({
         where: { noteId_categoryId: { noteId, categoryId } },
     });
-
     return await findUniqueNote(noteId);
-
 };
 
 export default {

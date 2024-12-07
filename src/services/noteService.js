@@ -39,7 +39,8 @@ const addCategoriesToNote = async (noteId, categoryIds) => {
 };
 
 const removeCategoryFromNote = async (noteId, categoryId) => {
-    return await noteRepository.removeCategoryFromNote(noteId, categoryId);
+    const note = await noteRepository.removeCategoryFromNote(noteId, categoryId);
+    return await getNotes(note.userId, note.archived);
 };
 
 export default {
