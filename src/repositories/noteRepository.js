@@ -1,4 +1,4 @@
-import prisma from '../config/database.cjs';
+import prisma from '../config/database.js';
 
 // Helper functions
 const findUniqueNote = async (id) => {
