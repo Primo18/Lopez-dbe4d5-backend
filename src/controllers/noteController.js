@@ -1,6 +1,13 @@
 import noteService from '../services/noteService.js';
 
-// Phase 1
+// Helper function for error handling
+const handleControllerError = (res, error, customMessages = {}) => {
+    const { status = 500, message = 'Internal server error' } = customMessages[error.message] || {};
+    console.error(error);
+    return res.status(status).json({ error: message || error.message });
+};
+
+// Controller functions
 const createNote = async (req, res) => {
     const { title, content } = req.body;
     const userId = req.userId;
@@ -13,14 +20,13 @@ const createNote = async (req, res) => {
         const note = await noteService.createNote({ title, content, userId });
         res.status(201).json(note);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        handleControllerError(res, error);
     }
 };
 
 const updateNote = async (req, res) => {
     const { id } = req.params;
     const { title, content, archived } = req.body;
-
     const userId = req.userId;
 
     if (!userId) {
@@ -28,46 +34,34 @@ const updateNote = async (req, res) => {
     }
 
     try {
-        const note = await noteService.getNoteById(id);
+        const updatedFields = { title, content, archived };
+        const updatedNote = await noteService.updateNote(Number(id), userId, updatedFields);
 
-        if (!note) {
-            return res.status(404).json({ error: 'Note not found' });
-        }
-
-        if (note.userId !== userId) {
-            return res.status(403).json({ error: 'You do not have permission to edit this note' });
-        }
-
-        const updatedFields = {};
-        if (title !== undefined) updatedFields.title = title;
-        if (content !== undefined) updatedFields.content = content;
-        if (archived !== undefined) updatedFields.archived = archived;
-
-        const updatedNote = await noteService.updateNote(id, updatedFields);
-
-        return res.status(200).json(updatedNote);
+        res.status(200).json(updatedNote);
     } catch (error) {
-        if (error.message === 'Record not found') {
-            return res.status(404).json({ error: 'Note not found' });
-        }
-        console.error(error);
-        return res.status(500).json({ error: 'Internal server error' });
+        handleControllerError(res, error, {
+            'Note not found': { status: 404, message: 'Note not found' },
+            'You do not have permission to modify this note': { status: 403, message: 'Unauthorized' },
+        });
     }
 };
 
-
-
 const deleteNote = async (req, res) => {
     const { id } = req.params;
+    const userId = req.userId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
-        await noteService.deleteNote(id);
+        await noteService.deleteNote(Number(id), userId);
         res.status(204).send();
     } catch (error) {
-        if (error.message === 'Record not found') {
-            return res.status(404).json({ error: 'Note not found' });
-        }
-        console.error(error);
-        return res.status(500).json({ error: 'Internal server error' });
+        handleControllerError(res, error, {
+            'Note not found': { status: 404, message: 'Note not found' },
+            'You do not have permission to modify this note': { status: 403, message: 'Unauthorized' },
+        });
     }
 };
 
@@ -79,32 +73,26 @@ const getNotes = async (req, res) => {
         const notes = await noteService.getNotes(userId, archived === 'true');
         res.status(200).json(notes);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        handleControllerError(res, error);
     }
 };
 
-
-// Phase 2
 const addCategoriesToNote = async (req, res) => {
     const { id } = req.params;
     const { categoryIds } = req.body;
-    const userId = req.userId;
 
-    if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
+    if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
         return res.status(400).json({ error: 'Invalid category IDs' });
     }
 
     try {
-        const updatedNote = await noteService.addCategoriesToNote(Number(id), Number(userId), categoryIds);
+        const updatedNote = await noteService.addCategoriesToNote(Number(id), categoryIds);
         res.status(200).json(updatedNote);
     } catch (error) {
-        if (error.message === 'Note does not exist or does not belong to the user') {
-            return res.status(404).json({ error: error.message }); // 404: Not Found
-        }
-        if (error.message === 'One or more categories do not belong to the user') {
-            return res.status(403).json({ error: error.message }); // 403: Forbidden
-        }
-        res.status(500).json({ error: 'Internal server error' });
+        handleControllerError(res, error, {
+            'Note does not exist or does not belong to the user': { status: 404, message: error.message },
+            'One or more categories do not belong to the user': { status: 403, message: error.message },
+        });
     }
 };
 
@@ -119,45 +107,15 @@ const removeCategoryFromNote = async (req, res) => {
         const updatedNote = await noteService.removeCategoryFromNote(Number(id), Number(categoryId));
         res.status(200).json(updatedNote);
     } catch (error) {
-        console.error('Error in removeCategoryFromNote:', error.message);
-        res.status(500).json({ error: error.message || 'Internal server error' });
+        handleControllerError(res, error);
     }
 };
 
-const getNotesByCategory = async (req, res) => {
-    const { category } = req.query;
-    const userId = req.userId;
-
-    if (!category) {
-        return res.status(400).json({ error: 'Category name is required' });
-    }
-
-    try {
-        const notes = await noteService.getNotesByCategory(userId, category);
-        res.status(200).json(notes);
-    } catch (error) {
-        console.error('Error in getNotesByCategory:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+export default {
+    createNote,
+    updateNote,
+    deleteNote,
+    getNotes,
+    addCategoriesToNote,
+    removeCategoryFromNote,
 };
-
-
-const getCategoriesForNote = async (req, res) => {
-    const { id } = req.params;
-    const userId = req.userId;
-
-    if (!id) {
-        return res.status(400).json({ error: 'Note ID is required' });
-    }
-
-    try {
-        const categories = await noteService.getCategoriesForNote(Number(id), Number(userId));
-        res.status(200).json(categories);
-    } catch (error) {
-        console.error('Error in getCategoriesForNote:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-};
-
-
-export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, getCategoriesForNote };

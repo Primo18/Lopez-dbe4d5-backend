@@ -1,14 +1,16 @@
 import noteRepository from '../repositories/noteRepository.js';
 
-const createNote = async ({ title, content, userId }) => {
-    return await noteRepository.create({ title, content, userId });
+const createNote = async (noteData) => {
+    return await noteRepository.create(noteData);
 };
 
-const updateNote = async (id, data) => {
+const updateNote = async (id, userId, data) => {
+    await noteRepository.validateUserOwnership(id, userId);
     return await noteRepository.update(id, data);
 };
 
-const deleteNote = async (id) => {
+const deleteNote = async (id, userId) => {
+    await noteRepository.validateUserOwnership(id, userId);
     await noteRepository.deleteNote(id);
 };
 
@@ -26,40 +28,25 @@ const getNotes = async (userId, archived) => {
     }));
     return simplifiedNotes;
 };
-const getNoteById = async (id) => {
-    return await noteRepository.findNoteById(id);
-};
 
-const addCategoriesToNote = async (noteId, userId, categoryIds) => {
-    try {
-        console.log('Service: Adding categories to note:', { noteId, userId, categoryIds });
-        return await noteRepository.addCategoriesToNote(noteId, userId, categoryIds);
-    } catch (error) {
-        console.error('Error in service addCategoriesToNote:', error);
-        throw error;
+const addCategoriesToNote = async (noteId, categoryIds) => {
+    const note = await noteRepository.validateNoteExistence(noteId);
+    if (!note) {
+        throw new Error('Note not found');
     }
+    await noteRepository.addCategoriesToNote(noteId, categoryIds);
+    return await getNotes(note.userId, note.archived);
 };
 
 const removeCategoryFromNote = async (noteId, categoryId) => {
-    const updatedNote = await noteRepository.removeCategoryFromNote(noteId, categoryId);
-    if (!updatedNote) {
-        throw new Error('Note not found or category not associated');
-    }
-
-    return updatedNote;
+    return await noteRepository.removeCategoryFromNote(noteId, categoryId);
 };
 
-
-const getNotesByCategory = async (userId, categoryName) => {
-    const notes = await noteRepository.getNotesByCategory(userId, categoryName);
-    return notes; // Return the notes with the specified category
+export default {
+    createNote,
+    updateNote,
+    deleteNote,
+    getNotes,
+    addCategoriesToNote,
+    removeCategoryFromNote,
 };
-
-
-const getCategoriesForNote = async (noteId, userId) => {
-    const categories = await noteRepository.getCategoriesForNoteById(noteId, userId);
-    return categories.map((item) => item.category);
-};
-
-
-export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, getNoteById, getCategoriesForNote };
