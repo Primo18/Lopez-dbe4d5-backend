@@ -49,11 +49,23 @@ const findNoteById = async (id) => {
 };
 
 
-const findByUserIdAndArchived = async (userId, archived) => {
+const getNotes = async (userId, archived) => {
     return await prisma.note.findMany({
         where: {
             userId: Number(userId),
             archived: archived,
+        },
+        include: {
+            categories: {
+                include: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                },
+            },
         },
         orderBy: { createdAt: 'desc' },
     });
@@ -100,8 +112,8 @@ const removeCategoryFromNote = async (numNoteId, numCategoryId) => {
     const noteCategory = await prisma.noteCategory.findFirst({
         where: {
             noteId: numNoteId,
-            categoryId: numCategoryId
-        }
+            categoryId: numCategoryId,
+        },
     });
 
     if (!noteCategory) {
@@ -113,24 +125,38 @@ const removeCategoryFromNote = async (numNoteId, numCategoryId) => {
         where: {
             noteId_categoryId: {
                 noteId: numNoteId,
-                categoryId: numCategoryId
-            }
-        }
+                categoryId: numCategoryId,
+            },
+        },
     });
 
-    // Fetch the updated note with the remaining categories
-    return await prisma.note.findUnique({
+    // Fetch the updated note with simplified data
+    const updatedNote = await prisma.note.findUnique({
         where: { id: numNoteId },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            content: true,
+            archived: true,
             categories: {
-                include: {
-                    category: true // This will include the full category details
-                }
-            }
-        }
+                select: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                },
+            },
+        },
     });
 
+    // Transform the categories to only include the relevant data
+    updatedNote.categories = updatedNote.categories.map((cat) => cat.category);
+
+    return updatedNote;
 };
+
 
 const getNotesByCategory = async (userId, categoryName) => {
     return await prisma.note.findMany({
@@ -144,10 +170,34 @@ const getNotesByCategory = async (userId, categoryName) => {
                 },
             },
         },
-        include: {
-            categories: true,
+        select: {
+            id: true,
+            title: true,
+            content: true,
+            archived: true,
         },
     });
 };
 
-export default { create, update, deleteNote, findByUserIdAndArchived, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, findNoteById };
+
+const getCategoriesForNoteById = async (noteId, userId) => {
+    return await prisma.noteCategory.findMany({
+        where: {
+            noteId: noteId,
+            note: {
+                userId: userId,
+            },
+        },
+        select: {
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    });
+};
+
+
+export default { create, update, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, findNoteById, getCategoriesForNoteById };

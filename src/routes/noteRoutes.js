@@ -11,6 +11,7 @@ router.get('/', noteController.getNotes);
 // Phase 2
 router.post('/:id/categories', noteController.addCategoriesToNote);
 router.get('/categories', noteController.getNotesByCategory);
+router.get('/:id/categories', noteController.getCategoriesForNote);
 router.delete('/:id/categories/:categoryId', noteController.removeCategoryFromNote);
 
 export default router;

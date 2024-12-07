@@ -108,7 +108,6 @@ const addCategoriesToNote = async (req, res) => {
     }
 };
 
-
 const removeCategoryFromNote = async (req, res) => {
     const { id, categoryId } = req.params;
 
@@ -117,20 +116,11 @@ const removeCategoryFromNote = async (req, res) => {
     }
 
     try {
-        const updatedNote = await noteService.removeCategoryFromNote(id, categoryId);
+        const updatedNote = await noteService.removeCategoryFromNote(Number(id), Number(categoryId));
         res.status(200).json(updatedNote);
     } catch (error) {
-        console.error('Error removing category from note:', error);
-
-        if (error.message === 'Invalid Note ID or Category ID') {
-            return res.status(400).json({ error: error.message });
-        }
-
-        if (error.message === 'Category is not associated with this note') {
-            return res.status(404).json({ error: error.message });
-        }
-
-        res.status(500).json({ error: 'Internal server error', details: error.message });
+        console.error('Error in removeCategoryFromNote:', error.message);
+        res.status(500).json({ error: error.message || 'Internal server error' });
     }
 };
 
@@ -151,4 +141,23 @@ const getNotesByCategory = async (req, res) => {
     }
 };
 
-export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory };
+
+const getCategoriesForNote = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    if (!id) {
+        return res.status(400).json({ error: 'Note ID is required' });
+    }
+
+    try {
+        const categories = await noteService.getCategoriesForNote(Number(id), Number(userId));
+        res.status(200).json(categories);
+    } catch (error) {
+        console.error('Error in getCategoriesForNote:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
+export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, getCategoriesForNote };

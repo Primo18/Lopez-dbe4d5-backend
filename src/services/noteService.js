@@ -13,9 +13,19 @@ const deleteNote = async (id) => {
 };
 
 const getNotes = async (userId, archived) => {
-    return await noteRepository.findByUserIdAndArchived(userId, archived);
+    const notes = await noteRepository.getNotes(userId, archived);
+    const simplifiedNotes = notes.map(note => ({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        archived: note.archived,
+        categories: note.categories.map(category => ({
+            id: category.category.id,
+            name: category.category.name,
+        })),
+    }));
+    return simplifiedNotes;
 };
-
 const getNoteById = async (id) => {
     return await noteRepository.findNoteById(id);
 };
@@ -31,19 +41,25 @@ const addCategoriesToNote = async (noteId, userId, categoryIds) => {
 };
 
 const removeCategoryFromNote = async (noteId, categoryId) => {
-    // Convert string IDs to integers
-    const numNoteId = parseInt(noteId, 10);
-    const numCategoryId = parseInt(categoryId, 10);
-
-    // Vlaidate the IDs
-    if (isNaN(numNoteId) || isNaN(numCategoryId)) {
-        throw new Error('Invalid note or category ID');
+    const updatedNote = await noteRepository.removeCategoryFromNote(noteId, categoryId);
+    if (!updatedNote) {
+        throw new Error('Note not found or category not associated');
     }
-    return await noteRepository.removeCategoryFromNote(numNoteId, numCategoryId);
+
+    return updatedNote;
 };
+
 
 const getNotesByCategory = async (userId, categoryName) => {
-    return await noteRepository.getNotesByCategory(userId, categoryName);
+    const notes = await noteRepository.getNotesByCategory(userId, categoryName);
+    return notes; // Return the notes with the specified category
 };
 
-export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, getNoteById };
+
+const getCategoriesForNote = async (noteId, userId) => {
+    const categories = await noteRepository.getCategoriesForNoteById(noteId, userId);
+    return categories.map((item) => item.category);
+};
+
+
+export default { createNote, updateNote, deleteNote, getNotes, addCategoriesToNote, removeCategoryFromNote, getNotesByCategory, getNoteById, getCategoriesForNote };
